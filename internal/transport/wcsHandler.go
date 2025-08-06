@@ -253,7 +253,7 @@ func (wc *WcsHandler) GetFilesList(w http.ResponseWriter, r *http.Request) {
 
 	resp := response.Standard{
 		Data: &response.DataPayload{
-			"json": out,
+			"docs": out,
 		},
 	}
 
