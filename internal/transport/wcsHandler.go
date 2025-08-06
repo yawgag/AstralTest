@@ -272,6 +272,13 @@ func (wc *WcsHandler) DeleteDoc(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+
+	resp := response.Standard{
+		Data: &response.DataPayload{
+			fileId.String(): true,
+		},
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func getFileFileOperationsData(r *http.Request) (*uuid.UUID, *uuid.UUID, error) {

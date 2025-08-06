@@ -7,9 +7,14 @@ import (
 	"AstralTest/internal/storage/cache"
 	"AstralTest/internal/storage/postgres"
 	"AstralTest/internal/transport"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 type App struct {
@@ -49,7 +54,30 @@ func InitApp() (*App, error) {
 
 func (a *App) Run() {
 	fmt.Println("Run server")
-	if err := http.ListenAndServe(a.Config.ServerAddres, a.Router); err != nil {
-		log.Fatal(err)
+
+	srv := &http.Server{
+		Addr:    a.Config.ServerAddres,
+		Handler: a.Router,
 	}
+
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
+		<-sigint
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("server shutdown: %v", err)
+		}
+		close(idleConnsClosed)
+	}()
+
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("server ListenAndServe error: %v", err)
+	}
+
+	<-idleConnsClosed
 }
